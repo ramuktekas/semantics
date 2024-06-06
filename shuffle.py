@@ -7,7 +7,7 @@ these algorithms are the shuffling methods I use commonly.
 Random shuffling destroys internal structure of a signal that you may not always want for your analysis
 instead, these two methods selectively alter the signal structure that can be better used for comparison
 Compartmentalise the timeseries into blocks of length equal to the Autocorrelation of the window of the timeseries
-(know more about them here: 
+(know more about them here: https://www.georgnorthoff.com/s/acw.m)
 Markov Block bootstrap shuffled the blocks, 
 while philipp's shuffle inside the block
 7-6-24
