@@ -83,7 +83,7 @@ def calculate_te(source, target, m):
     min_length = min(len(source), len(target))
     source = np.array(source)[:min_length]
     target = np.array(target)[:min_length]
-    tau_values = np.arange(1, 11)
+    tau_values = np.arange(1, 2)
     te_results = [te.te_compute(source, target, m, tau) for tau in tau_values]
     return te_results
 
@@ -97,41 +97,20 @@ def p_value(input_ts, shuffle_ts, te_values):
     p_values = {tau: greater_count[tau] / len(shuffle_ts) for tau in range(len(te_values))}
     return p_values
 
-def markov_block_bootstrap(time_series, sampling_rate=1.0):
-    # Calculate block length using the first zero-crossing of the autocorrelation function
-    acw_func = acf(time_series, nlags=len(time_series) - 1, fft=True)
-    block_length = np.argmax(acw_func <= 0) / sampling_rate
-
-    # Ensure block length is at least 1
-    block_length = max(int(block_length), 1)
-
+def markov_block_bootstrap(time_series, block_length):
     num_blocks = int(np.ceil(len(time_series) / block_length))
     blocks = [time_series[i * block_length:(i + 1) * block_length] for i in range(num_blocks)]
-
-    # Shuffle the blocks
     shuffled_blocks = shuffle(blocks, random_state=None)
-
-    # Flatten the list of shuffled blocks into a single time series
     shuffled_time_series = [item for sublist in shuffled_blocks for item in sublist]
     return shuffled_time_series
 
-def philipp_shuffle(time_series, sampling_rate=1.0):
-    # Calculate block length using the first zero-crossing of the autocorrelation function
-    acw_func = acf(time_series, nlags=len(time_series) - 1, fft=True)
-    block_length = np.argmax(acw_func <= 0) / sampling_rate
-
-    # Ensure block length is at least 1
-    block_length = max(int(block_length), 1)
-
+def philipp_shuffle(time_series, block_length):
     num_blocks = int(np.ceil(len(time_series) / block_length))
     blocks = [time_series[i * block_length:(i + 1) * block_length] for i in range(num_blocks)]
-
-    # Shuffle within each block
     shuffled_blocks = [np.random.permutation(block) for block in blocks]
-
-    # Flatten the list of shuffled blocks into a single time series
     shuffled_time_series = [item for sublist in shuffled_blocks for item in sublist]
     return shuffled_time_series
+
 
 def run_analysis(cosine_similarity_path, group_dicts):
     results_dict = {}
@@ -154,12 +133,15 @@ def run_analysis(cosine_similarity_path, group_dicts):
 
         # Detrend and bandpass fMRI time series for each subject
         processed_bold_signals = []
+        block_lengths = []
         for subject in subjects_dict.keys():
             time_series = fMRI_data[subject].values
             detrended_ts = detrend(time_series)
             filtered_ts = apply_bandpass(detrended_ts)
             processed_bold_signals.append(filtered_ts)
-
+            block_lengths.append(subjects_dict[subject])
+            
+    
         # Average the BOLD signals for the subgroup
         averaged_bold_signal = np.mean(processed_bold_signals, axis=0)
 
@@ -167,7 +149,7 @@ def run_analysis(cosine_similarity_path, group_dicts):
         input_acw_ts = get_acw_time_series(cosine_similarity_ts)
 
         # Calculate TE for averaged ACW time series
-        averaged_acw_bold = get_acw_time_series(averaged_bold_signal)
+        averaged_acw_bold = np.mean([get_acw_time_series(ts) for ts in processed_bold_signals], axis=0)
         te_acw_reverse = calculate_te(averaged_acw_bold, input_acw_ts, 3)
         te_acw_forward = calculate_te(input_acw_ts, averaged_acw_bold, 3)
 
@@ -176,19 +158,26 @@ def run_analysis(cosine_similarity_path, group_dicts):
         te_raw_forward = calculate_te(cosine_similarity_ts, averaged_bold_signal, 3)
 
         # Create shuffled time series for p-values
-        mbb_s = [markov_block_bootstrap(cosine_similarity_ts) for _ in range(1000)]
-        phi_s = [philipp_shuffle(cosine_similarity_ts) for _ in range(1000)]
+        mbb_s = [markov_block_bootstrap(cosine_similarity_ts, 30) for _ in range(1000)]
+        phi_s = [philipp_shuffle(cosine_similarity_ts, 30) for _ in range(1000)]
         ran_s = [np.random.permutation(cosine_similarity_ts) for _ in range(1000)]
-        mbb_b = [markov_block_bootstrap(averaged_bold_signal) for _ in range(1000)]
-        phi_b = [philipp_shuffle(averaged_bold_signal) for _ in range(1000)]
-        ran_b = [np.random.permutation(averaged_bold_signal) for _ in range(1000)]
+        mbb_b = [np.mean([markov_block_bootstrap(ts, block_lengths[i]) for i, ts in enumerate(processed_bold_signals)], axis=0) for _ in range(1000)]
+        phi_b = [np.mean([philipp_shuffle(ts, block_lengths[i]) for i, ts in enumerate(processed_bold_signals)], axis=0) for _ in range(1000)]
+        ran_b = [np.mean([np.random.permutation(ts) for ts in processed_bold_signals], axis=0) for _ in range(1000)]
+
+        # Create shuffled BOLD time series and calculate their ACW time series, then average them
+        shuffled_BOLDacw_mbb = [np.mean([get_acw_time_series(markov_block_bootstrap(ts, block_lengths[i])) for i, ts in enumerate(processed_bold_signals)], axis=0) for _ in range(1000)]
+        shuffled_BOLDacw_phi = [np.mean([get_acw_time_series(philipp_shuffle(ts, block_lengths[i])) for i, ts in enumerate(processed_bold_signals)], axis=0) for _ in range(1000)]
+        shuffled_BOLDacw_ran = [np.mean([get_acw_time_series(np.random.permutation(ts)) for ts in processed_bold_signals], axis=0) for _ in range(1000)]
+
+
 
         # Calculate p-values for ACW TE
-        p_values_acw_forward_mbb = p_value(input_acw_ts, [get_acw_time_series(ts) for ts in mbb_b], te_acw_forward)
+        p_values_acw_forward_mbb = p_value(input_acw_ts, shuffled_BOLDacw_mbb, te_acw_forward)
         p_values_acw_reverse_mbb = p_value(averaged_acw_bold, [get_acw_time_series(ts) for ts in mbb_s], te_acw_reverse)
-        p_values_acw_forward_phi = p_value(input_acw_ts, [get_acw_time_series(ts) for ts in phi_b], te_acw_forward)
+        p_values_acw_forward_phi = p_value(input_acw_ts, shuffled_BOLDacw_phi, te_acw_forward)
         p_values_acw_reverse_phi = p_value(averaged_acw_bold, [get_acw_time_series(ts) for ts in phi_s], te_acw_reverse)
-        p_values_acw_forward_ran = p_value(input_acw_ts, [get_acw_time_series(ts) for ts in ran_b], te_acw_forward)
+        p_values_acw_forward_ran = p_value(input_acw_ts, shuffled_BOLDacw_ran, te_acw_forward)
         p_values_acw_reverse_ran = p_value(averaged_acw_bold, [get_acw_time_series(ts) for ts in ran_s], te_acw_reverse)
 
         # Calculate p-values for raw TE
