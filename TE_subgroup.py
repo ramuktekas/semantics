@@ -5,85 +5,104 @@ from statsmodels.tsa.stattools import acf
 from sklearn.utils import shuffle
 from PyIF import te_compute as te
 import csv
+import pandas as pd
+import numpy as np
+from sklearn.utils import shuffle
+from PyIF import te_compute
+from scipy.signal import correlate, butter, filtfilt
+from scipy.stats import zscore
+import scipy.signal
+from statsmodels.tsa.stattools import acf
 
 # Dictionaries with ACW0 of task for high and low subjects
 
-# A1 Region
-a1_H = {
-    '724446': 5, '878776': 22, '573249': 5, '263436': 5, '943862': 14, '995174': 24,
-    '115825': 7, '140117': 8, '562345': 6, '789373': 8, '115017': 5, '134627': 15,
-    '105923': 13, '128935': 7, '132118': 11, '135124': 14, '966975': 6, '111514': 13,
-    '901442': 7, '871762': 13, '770352': 9, '109123': 6, '782561': 16, '320826': 14,
-    '467351': 6, '214524': 5, '116726': 9, '146129': 14, '118225': 17
-}
+A1_ = {'654552': 6, '572045': 5, '552241': 5, '789373': 6, '111514': 6, '135124': 6, '617748': 5, '320826': 5,
+          '644246': 5, '130114': 5, '573249': 5, '725751': 6, '467351': 6, '536647': 6, '108323': 5, '833249': 6,
+          '765864': 6, '971160': 6, '562345': 6, '943862': 6, '146129': 6, '115017': 6, '966975': 7, '115825': 6,
+          '706040': 6, '878877': 5, '132118': 6, '104416': 5, '871762': 6, '114823': 6, '581450': 5, '105923': 6,
+          '872764': 5, '751550': 6, '145834': 5, '771354': 5, '140117': 6, '131722': 5, '109123': 7, '782561': 6,
+          '818859': 5, '724446': 5, '770352': 5, '878776': 7, '263436': 5, '126426': 5, '995174': 6, '385046': 5,
+          '814649': 6, '901442': 6, '128935': 6, '214524': 6, '100610': 5, '134829': 6, '116726': 6, '118225': 6,
+          '134627': 6, '690152': 6, '102311': 6, '601127': 6}
+A1_L = {'572045': 5, '552241': 5, '617748': 5, '320826': 5, '644246': 5, '130114': 5, '573249': 5, '108323': 5,
+        '878877': 5, '104416': 5, '581450': 5, '872764': 5, '145834': 5, '771354': 5, '131722': 5, '818859': 5,
+        '724446': 5, '770352': 5, '263436': 5, '126426': 5, '385046': 5, '100610': 5, '654552': 6, '789373': 6,
+        '111514': 6, '135124': 6, '725751': 6, '467351': 6, '536647': 6, '833249': 6}
+A1_H = {'765864': 6, '971160': 6, '562345': 6, '943862': 6, '146129': 6, '115017': 6, '115825': 6, '706040': 6,
+        '132118': 6, '871762': 6, '114823': 6, '105923': 6, '751550': 6, '140117': 6, '782561': 6, '995174': 6,
+        '814649': 6, '901442': 6, '128935': 6, '214524': 6, '134829': 6, '116726': 6, '118225': 6, '134627': 6,
+        '690152': 6, '102311': 6, '601127': 6, '966975': 7, '109123': 7, '878776': 7}
 
-a1_L = {
-    '104416': 6, '552241': 17, '690152': 11, '725751': 12, '536647': 11, '131722': 7,
-    '771354': 13, '617748': 6, '114823': 10, '145834': 5, '102311': 7, '385046': 8,
-    '818859': 8, '971160': 9, '108323': 5, '130114': 8, '765864': 6, '814649': 15,
-    '126426': 25, '751550': 10, '100610': 21, '572045': 6, '654552': 5, '833249': 7,
-    '706040': 7, '581450': 14, '134829': 9, '878877': 4, '644246': 14, '872764': 9
-}
+PSL= {'654552': 6, '572045': 5, '789373': 7, '111514': 5, '135124': 6, '617748': 5, '320826': 5, '644246': 5,
+           '130114': 5, '573249': 5, '725751': 6, '467351': 6,  '108323': 5, '833249': 6, '765864': 6,
+           '971160': 6, '562345': 6, '943862': 6, '146129': 7, '115017': 6, '966975': 7, '115825': 6, '706040': 6,
+           '878877': 5, '132118': 6, '104416': 5, '871762': 6, '114823': 6, '581450': 5, '105923': 6, '872764': 6,
+           '751550': 6, '145834': 5, '771354': 5, '140117': 6, '131722': 5, '109123': 7, '782561': 6, '818859': 5,
+           '724446': 5, '770352': 5, '878776': 7, '263436': 5, '126426': 5, '995174': 6, '385046': 6, '814649': 6,
+           '901442': 7, '128935': 6, '214524': 7, '100610': 5, '134829': 6, '116726': 6, '118225': 6, '134627': 6,
+           '690152': 7, '102311': 6, '601127': 7}
+PSLL= {'572045': 5, '617748': 5, '320826': 5, '644246': 5, '130114': 5, '573249': 5, '108323': 5, '878877': 5,
+         '104416': 5, '581450': 5, '145834': 5, '771354': 5, '131722': 5, '818859': 5, '724446': 5, '770352': 5,
+         '263436': 5, '126426': 5, '100610': 5, '111514': 5, '654552': 6, '135124': 6, '725751': 6, '467351': 6,
+         '833249': 6, '765864': 6, '971160': 6}
+PSLH= {'562345': 6, '943862': 6, '115017': 6, '115825': 6, '706040': 6, '132118': 6, '871762': 6, '114823': 6,
+         '105923': 6, '751550': 6, '140117': 6, '782561': 6, '995174': 6, '385046': 6, '814649': 6, '901442': 7,
+         '128935': 6, '214524': 7, '134829': 6, '116726': 6, '118225': 6, '134627': 6, '690152': 7, '102311': 6,
+         '601127': 7, '966975': 7, '109123': 7, '878776': 7, '146129': 7}
 
-# PSL Region
-pslH = {
-    '943862': 13, '770352': 22, '573249': 29, '115017': 13, '878877': 5, '814649': 14,
-    '872764': 7, '725751': 12, '128935': 6, '105923': 8, '467351': 12, '833249': 15,
-    '100610': 8, '102311': 31, '995174': 19, '146129': 8, '116726': 5, '878776': 25,
-    '385046': 19, '562345': 6, '263436': 5, '108323': 13, '132118': 20, '118225': 4,
-    '690152': 10, '966975': 6, '214524': 19
-}
 
-pslL = {
-    '130114': 13, '581450': 6, '771354': 14, '131722': 21, '782561': 19, '115825': 8,
-    '134829': 13, '901442': 8, '617748': 9, '724446': 15, '971160': 8, '654552': 15,
-    '126426': 13, '644246': 9, '818859': 9, '134627': 16, '789373': 12, '871762': 14,
-    '706040': 18, '751550': 6, '104416': 8, '135124': 10, '140117': 10, '111514': 6,
-    '145834': 14, '572045': 29, '320826': 7, '114823': 8, '109123': 22, '765864': 7
-}
 
-# TA2 Region
-ta2H = {
-    '116726': 22, '878776': 13, '128935': 12, '562345': 10, '690152': 8, '943862': 14,
-    '751550': 14, '536647': 16, '871762': 13, '131722': 25, '706040': 8, '102311': 10,
-    '105923': 13, '263436': 22, '135124': 11, '971160': 5, '146129': 13, '115017': 5,
-    '901442': 6, '100610': 16, '814649': 9, '572045': 8, '109123': 6, '782561': 15,
-    '966975': 4, '118225': 11, '878877': 4, '467351': 5, '872764': 9
-}
-
-ta2L = {
-    '320826': 12, '725751': 10, '617748': 8, '114823': 13, '134627': 12, '724446': 13,
-    '111514': 12, '995174': 20, '115825': 16, '126426': 24, '130114': 16, '833249': 8,
-    '145834': 5, '134829': 10, '654552': 7, '104416': 14, '818859': 10, '552241': 16,
-    '770352': 14, '214524': 7, '771354': 11, '385046': 10, '765864': 15, '789373': 12,
-    '644246': 13, '132118': 15, '140117': 12, '573249': 7, '108323': 13, '581450': 14
-}
-
+TA2= {'654552': 5, '572045': 6, '552241': 6, '789373': 6, '111514': 5, '135124': 5, '617748': 5, '320826': 5,
+           '644246': 6, '130114': 5, '573249': 5, '725751': 5, '467351': 6, '536647': 6, '108323': 5, '833249': 6,
+           '765864': 6, '971160': 6, '562345': 6, '943862': 6, '146129': 6, '115017': 6, '966975': 7, '115825': 6,
+           '706040': 5, '878877': 6, '132118': 6, '104416': 5, '871762': 5, '114823': 5, '581450': 5, '105923': 6,
+           '872764': 7, '751550': 6, '145834': 5, '771354': 5, '140117': 5, '131722': 6, '109123': 7, '782561': 7,
+           '818859': 5, '724446': 5, '770352': 5, '878776': 6, '263436': 5, '126426': 5, '995174': 6, '385046': 6,
+           '814649': 6, '901442': 7, '128935': 5, '214524': 7, '100610': 5, '134829': 6, '116726': 6, '118225': 6,
+           '134627': 6, '690152': 6, '102311': 7, '601127': 6}
+TA2L= {'654552': 5, '111514': 5, '135124': 5, '617748': 5, '320826': 5, '130114': 5, '573249': 5, '725751': 5,
+         '108323': 5, '706040': 5, '104416': 5, '871762': 5, '114823': 5, '581450': 5, '145834': 5, '771354': 5,
+         '140117': 5, '818859': 5, '724446': 5, '770352': 5, '263436': 5, '126426': 5, '128935': 5, '100610': 5,
+         '572045': 6, '552241': 6, '789373': 6, '644246': 6, '467351': 6, '536647': 6}
+TA2H= {'833249': 6, '765864': 6, '971160': 6, '562345': 6, '943862': 6, '146129': 6, '115017': 6, '115825': 6,
+         '878877': 6, '132118': 6, '105923': 6, '751550': 6, '131722': 6, '878776': 6, '995174': 6, '385046': 6,
+         '814649': 6, '134829': 6, '116726': 6, '118225': 6, '134627': 6, '690152': 6, '601127': 6, '966975': 7,
+         '872764': 7, '109123': 7, '782561': 7, '901442': 7, '214524': 7, '102311': 7}
 # Define helper functions
-def apply_bandpass(signal, lowcut=0.02, highcut=0.2, fs=1.0, order=5):
-    nyquist = 0.5 * fs
-    low = lowcut / nyquist
-    high = highcut / nyquist
-    b, a = butter(order, [low, high], btype='band')
-    y = filtfilt(b, a, signal)
-    return y
+def apply_bandpass(ts):
+    low_freq = 0.02
+    high_freq = 0.1
+    sampling_rate = 1.0
+    sos = scipy.signal.butter(N=3, Wn=[low_freq, high_freq], btype='bandpass', fs=sampling_rate, output='sos')
+    filtered_ts = scipy.signal.sosfilt(sos, ts)
+    return filtered_ts
 
 def calculate_acw(ts):
     acw_func = acf(ts, nlags=len(ts)-1, fft=True)
     acw_0 = np.argmax(acw_func <= 0)
     return acw_0
-
+def detrend_data(ts):
+    return scipy.signal.detrend(ts)
 def get_acw_time_series(time_series, window_size=150, step_size=1):
-    detrended_ts = detrend(time_series)
-    filtered_ts = apply_bandpass(detrended_ts)
-    acw_series = [calculate_acw(filtered_ts[i:i+window_size]) for i in range(0, len(filtered_ts) - window_size + 1, step_size)]
+    if time_series is cosine_similarity_ts:
+        detrended_ts = time_series
+        filtered_ts = detrended_ts
+    else:
+        detrended_ts = detrend_data(time_series)
+        filtered_ts = apply_bandpass(detrended_ts)
+
+    acw_series = []
+    for i in range(0, len(filtered_ts) - window_size + 1, step_size):
+        window = filtered_ts[i:i+window_size]
+        acw_0 = calculate_acw(window)
+        acw_series.append(acw_0)
     return acw_series
 
 def calculate_te(source, target, m):
     min_length = min(len(source), len(target))
     source = np.array(source)[:min_length]
     target = np.array(target)[:min_length]
-    tau_values = np.arange(1, 2)
+    tau_values = np.arange(1, 11)
     te_results = [te.te_compute(source, target, m, tau) for tau in tau_values]
     return te_results
 
@@ -116,7 +135,7 @@ def run_analysis(cosine_similarity_path, group_dicts):
     results_dict = {}
 
     # Load the input time series
-    cosine_similarity_ts = pd.read_csv(cosine_similarity_path)['Cosine Similarity'].dropna().values
+    cosine_similarity_ts = pd.read_csv(cosine_similarity_path)['Word Depth'].dropna().values
 
     for group_name, subjects_dict in group_dicts.items():
         # Extract the ROI and subgroup
@@ -140,8 +159,8 @@ def run_analysis(cosine_similarity_path, group_dicts):
             filtered_ts = apply_bandpass(detrended_ts)
             processed_bold_signals.append(filtered_ts)
             block_lengths.append(subjects_dict[subject])
-            
-    
+
+
         # Average the BOLD signals for the subgroup
         averaged_bold_signal = np.mean(processed_bold_signals, axis=0)
 
@@ -158,17 +177,17 @@ def run_analysis(cosine_similarity_path, group_dicts):
         te_raw_forward = calculate_te(cosine_similarity_ts, averaged_bold_signal, 3)
 
         # Create shuffled time series for p-values
-        mbb_s = [markov_block_bootstrap(cosine_similarity_ts, 30) for _ in range(1000)]
-        phi_s = [philipp_shuffle(cosine_similarity_ts, 30) for _ in range(1000)]
-        ran_s = [np.random.permutation(cosine_similarity_ts) for _ in range(1000)]
-        mbb_b = [np.mean([markov_block_bootstrap(ts, block_lengths[i]) for i, ts in enumerate(processed_bold_signals)], axis=0) for _ in range(1000)]
-        phi_b = [np.mean([philipp_shuffle(ts, block_lengths[i]) for i, ts in enumerate(processed_bold_signals)], axis=0) for _ in range(1000)]
-        ran_b = [np.mean([np.random.permutation(ts) for ts in processed_bold_signals], axis=0) for _ in range(1000)]
+        mbb_s = [markov_block_bootstrap(cosine_similarity_ts, 66) for _ in range(1)]
+        phi_s = [philipp_shuffle(cosine_similarity_ts, 66) for _ in range(1)]
+        ran_s = [np.random.permutation(cosine_similarity_ts) for _ in range(1)]
+        mbb_b = [np.mean([markov_block_bootstrap(ts, block_lengths[i]) for i, ts in enumerate(processed_bold_signals)], axis=0) for _ in range(1)]
+        phi_b = [np.mean([philipp_shuffle(ts, block_lengths[i]) for i, ts in enumerate(processed_bold_signals)], axis=0) for _ in range(1)]
+        ran_b = [np.mean([np.random.permutation(ts) for ts in processed_bold_signals], axis=0) for _ in range(1)]
 
         # Create shuffled BOLD time series and calculate their ACW time series, then average them
-        shuffled_BOLDacw_mbb = [np.mean([get_acw_time_series(markov_block_bootstrap(ts, block_lengths[i])) for i, ts in enumerate(processed_bold_signals)], axis=0) for _ in range(1000)]
-        shuffled_BOLDacw_phi = [np.mean([get_acw_time_series(philipp_shuffle(ts, block_lengths[i])) for i, ts in enumerate(processed_bold_signals)], axis=0) for _ in range(1000)]
-        shuffled_BOLDacw_ran = [np.mean([get_acw_time_series(np.random.permutation(ts)) for ts in processed_bold_signals], axis=0) for _ in range(1000)]
+        shuffled_BOLDacw_mbb = [np.mean([get_acw_time_series(markov_block_bootstrap(ts, block_lengths[i])) for i, ts in enumerate(processed_bold_signals)], axis=0) for _ in range(1)]
+        shuffled_BOLDacw_phi = [np.mean([get_acw_time_series(philipp_shuffle(ts, block_lengths[i])) for i, ts in enumerate(processed_bold_signals)], axis=0) for _ in range(1)]
+        shuffled_BOLDacw_ran = [np.mean([get_acw_time_series(np.random.permutation(ts)) for ts in processed_bold_signals], axis=0) for _ in range(1)]
 
 
 
@@ -212,19 +231,25 @@ def run_analysis(cosine_similarity_path, group_dicts):
 
 # Define the group dictionaries as provided
 group_dicts = {
-    'A1_H': a1_H,
-    'A1_L': a1_L,
-    'PSLH': pslH,
-    'PSLL': pslL,
-    'TA2H': ta2H,
-    'TA2L': ta2L
+    'A1_H': A1_H,
+    'A1_L': A1_L,
+    'A1all': A1_,
+    'PSLH': PSLH,
+    'PSLL': PSLL,
+    'PSLall': PSL,
+    'TA2H': TA2H,
+    'TA2L': TA2L,
+    'TA2all': TA2
 }
 
 # Run the analysis
-results = run_analysis("s3-7T_MOVIE2_HO1.csv", group_dicts)
+cosine_similarity_path = 'Testes7T_MOVIE2_HO1.csv'
+# Load the input time series
+cosine_similarity_ts = pd.read_csv(cosine_similarity_path)['Word Depth'].dropna().values
+results = run_analysis("Testes7T_MOVIE2_HO1.csv", group_dicts)
 
 # Save results to CSV
-with open('te_results.csv', 'w', newline='') as csvfile:
+with open('wdoldte_resultsWDAug9_1620.csv', 'w', newline='') as csvfile:
     fieldnames = ['group', 'te_acw_forward', 'te_acw_reverse', 'te_raw_forward', 'te_raw_reverse',
                   'p_af_mbb', 'p_ar_mbb', 'p_af_phi', 'p_ar_phi', 'p_af_ran', 'p_ar_ran',
                   'p_rf_mbb', 'p_rr_mbb', 'p_rf_phi', 'p_rr_phi', 'p_rf_ran', 'p_rr_ran']
