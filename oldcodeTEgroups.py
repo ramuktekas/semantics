@@ -12,6 +12,8 @@ A1_tpn_df = pd.read_csv('A1_tpn.csv').drop(columns=['A1_tpn'])
 # Load the Cosine Similarity time series and remove NaN values
 cosine_similarity_ts = pd.read_csv("adjusted_average_wd_intervals.csv")['average_wd']
 cosine_similarity_ts = cosine_similarity_ts.dropna().values
+# Extract the Cosine Similarity time series
+cosine_ts = cosine_similarity_ts
 
 #cosine_similarity_ts = pd.read_csv("/Users/satrokommos/Documents/9th sem/code/data/Text/s3-7T_MOVIE2_HO1.csv")['Cosine Similarity']
 #cosine_similarity_ts = cosine_similarity_ts.dropna().values
@@ -220,6 +222,13 @@ def markov_block_bootstrap(time_series, block_length):
     shuffled_time_series = [item for sublist in shuffled_blocks for item in sublist]
     return shuffled_time_series
 
+def philipp_shuffle(time_series, block_length):
+    num_blocks = int(np.ceil(len(time_series) / block_length))
+    blocks = [time_series[i * block_length:(i + 1) * block_length] for i in range(num_blocks)]
+    shuffled_blocks = [np.random.permutation(block) for block in blocks]
+    shuffled_time_series = [item for sublist in shuffled_blocks for item in sublist]
+    return shuffled_time_series
+
 # Function to detrend time series
 # Function to detrend time series
 def detrend_data(ts):
@@ -239,7 +248,7 @@ def calculate_acw(ts):
     acw_0 = np.argmax(acw_func <= 0) / sampling_rate
     return acw_0
 
-def get_acw_time_series(time_series, window_size, step_size):
+def get_acw_time_series(time_series, window_size=150, step_size=1):
     if time_series is cosine_similarity_ts:
         detrended_ts = time_series
         filtered_ts = detrended_ts
@@ -274,48 +283,94 @@ def calculate_te(source, target, m):
 
     return te_results
 
+def p_value(input_ts, shuffle_ts, te_values):
+    greater_count = {tau: 0 for tau in range(len(te_values))}
+    for ts in shuffle_ts:
+        shuffle_te = calculate_te(input_ts, ts, 3)
+        for tau, te_value in enumerate(shuffle_te):
+            if te_value >= te_values[tau]:
+                greater_count[tau] += 1
+    p_values = {tau: greater_count[tau] / len(shuffle_ts) for tau in range(len(te_values))}
+    return p_values
 
 
 def process_group(group_subjects, A1_tpn_df, acw_values, cosine_ts, iterations, m):
-    no_shuffle_te_values = []
-    shuffle_te_values = {tau: [] for tau in range(1, 11)}
-    p_values = {tau: 0 for tau in range(1, 11)}
+    
     cosine_acw_ts=get_acw_time_series(cosine_ts,150,1)
+    mbb_s = [markov_block_bootstrap(cosine_similarity_ts, 66) for _ in range(1)]
+    phi_s = [philipp_shuffle(cosine_similarity_ts, 66) for _ in range(1)]
+    ran_s = [np.random.permutation(cosine_similarity_ts) for _ in range(1)]
     # Calculate TE without shuffling
     no_shuffle_acw_time_series = []
+    no_shuffle_BOLD = []
     for subject_id in group_subjects:
         subject_ts = A1_tpn_df[str(subject_id)].values
+        no_shuffle_BOLD.append(subject_ts)
         acw_ts = get_acw_time_series(subject_ts, 150, 1)
         no_shuffle_acw_time_series.append(acw_ts)
-    no_shuffle_time_series=np.mean
+    no_shuffle_BOLD_mean=np.mean(no_shuffle_BOLD,axis=0)
+    no_shuffle_BOLD_mean=no_shuffle_BOLD_mean[:len(cosine_ts)]
     no_shuffle_avg_acw_ts = np.mean(no_shuffle_acw_time_series, axis=0)
     no_shuffle_avg_acw_ts = no_shuffle_avg_acw_ts[:len(cosine_acw_ts)]
-    no_shuffle_te_values = calculate_te(cosine_acw_ts, no_shuffle_avg_acw_ts, m)
+    true_te_forward = calculate_te(cosine_acw_ts, no_shuffle_avg_acw_ts, m)
+    true_te_reverse = calculate_te(no_shuffle_avg_acw_ts, cosine_acw_ts,m )
+    fals_te_forward = calculate_te(cosine_ts, no_shuffle_BOLD_mean, m)
+    fals_te_reverse = calculate_te(no_shuffle_BOLD_mean,cosine_ts,m)
 
     # Calculate TE with shuffling for 'iterations' times
     for _ in range(iterations):
-        shuffle_acw_time_series = []
+
+        mar_acw_time_series = []
+        phi_acw_time_series = []
+        ran_acw_time_series = []
+        mar_time_series =[]
+        phi_time_series =[]
+        ran_time_series =[]
+        
         for subject_id in group_subjects:
             subject_ts = A1_tpn_df[str(subject_id)].values
 
             block_length = int(np.ceil(acw_values[str(subject_id)]))
-            shuffled_ts = markov_block_bootstrap(subject_ts, block_length)
-            acw_ts = get_acw_time_series(shuffled_ts, 150, 1)
-            shuffle_acw_time_series.append(acw_ts)
-        shuffle_avg_acw_ts = np.mean(shuffle_acw_time_series, axis=0)
-        shuffle_avg_acw_ts = shuffle_avg_acw_ts[:len(cosine_ts)]
+            mar_ts = markov_block_bootstrap(subject_ts, block_length)
+            mar_time_series.append(mar_ts)
+            phi_ts = philipp_shuffle(subject_ts, block_length)
+            phi_time_series.append(phi_ts)
+            ran_ts = np.random.permutation(subject_ts)
+            ran_time_series.append(ran_ts)
+            acw_ts_mar = get_acw_time_series(mar_ts, 150, 1)
+            mar_acw_time_series.append(acw_ts_mar)
+            acw_ts_phi = get_acw_time_series(phi_ts, 150, 1)
+            phi_acw_time_series.append(acw_ts_phi)
+            acw_ts_ran = get_acw_time_series(ran_ts,150,1)
+            ran_acw_time_series.append(acw_ts_ran)
+        
+        mar_avg_acw_ts = np.mean(mar_acw_time_series, axis=0)
+        mar_avg_acw_ts = mar_avg_acw_ts[:len(cosine_acw_ts)]
+        phi_avg_acw_ts = np.mean(phi_acw_time_series, axis=0)
+        phi_avg_acw_ts = phi_avg_acw_ts[:len(cosine_acw_ts)]
+        ran_avg_acw_ts = np.mean(ran_acw_time_series, axis=0)
+        ran_avg_acw_ts = ran_avg_acw_ts[:len(cosine_acw_ts)]
 
-        shuffle_te = calculate_te(cosine_acw_ts, shuffle_avg_acw_ts, m)
-        for tau in range(1, 11):
-            shuffle_te_values[tau].append(shuffle_te[tau - 1])
 
-    # Calculate p-values
-    for tau in range(1, 11):
-        no_shuffle_te = no_shuffle_te_values[tau - 1]
-        greater_count = sum(te > no_shuffle_te for te in shuffle_te_values[tau])
-        p_values[tau] = greater_count / iterations
+    # Calculate p-values for ACW TE
+    p_values_acw_forward_mbb = p_value(cosine_acw_ts, mar_acw_time_series, true_te_forward)
+    p_values_acw_reverse_mbb = p_value(no_shuffle_avg_acw_ts, [get_acw_time_series(ts) for ts in mbb_s], true_te_reverse)
+    p_values_acw_forward_phi = p_value(cosine_acw_ts, phi_acw_time_series, true_te_forward)
+    p_values_acw_reverse_phi = p_value(no_shuffle_avg_acw_ts, [get_acw_time_series(ts) for ts in phi_s], true_te_reverse)
+    p_values_acw_forward_ran = p_value(cosine_acw_ts, ran_acw_time_series, true_te_forward)
+    p_values_acw_reverse_ran = p_value(no_shuffle_avg_acw_ts, [get_acw_time_series(ts) for ts in ran_s], true_te_reverse)
 
-    return no_shuffle_te_values, shuffle_te_values, p_values
+    # Calculate p-values for raw TE
+    p_values_raw_forward_mbb = p_value(cosine_similarity_ts, mar_time_series, fals_te_forward)
+    p_values_raw_forward_phi = p_value(cosine_similarity_ts, phi_time_series, fals_te_forward)
+    p_values_raw_forward_ran = p_value(cosine_similarity_ts, ran_time_series, fals_te_forward)
+    p_values_raw_reverse_mbb = p_value(no_shuffle_BOLD_mean, mbb_s, fals_te_reverse)
+    p_values_raw_reverse_phi = p_value(no_shuffle_BOLD_mean, phi_s, fals_te_reverse)
+    p_values_raw_reverse_ran = p_value(no_shuffle_BOLD_mean, ran_s, fals_te_reverse)
+    
+
+    return true_te_forward,true_te_reverse,fals_te_forward,fals_te_reverse, p_values_acw_forward_mbb,p_values_acw_forward_phi,p_values_acw_forward_ran,p_values_acw_reverse_mbb,p_values_acw_reverse_phi,p_values_acw_reverse_ran,p_values_raw_forward_mbb,p_values_raw_forward_phi,p_values_raw_forward_ran,p_values_raw_reverse_mbb,p_values_raw_reverse_phi,p_values_raw_reverse_ran
+
 
 '''def process_group(group_subjects, A1_tpn_df, acw_values, cosine_ts, iterations, m):
     no_shuffle_te_values = []
@@ -372,8 +427,7 @@ def process_all_subjects(A1_tpn_df, acw_values, cosine_ts, iterations, m):
 
 
 
-# Extract the Cosine Similarity time series
-cosine_ts = cosine_similarity_ts
+
 
 # Calculate the ACW time series for the cosine similarity without preprocessing
 cosine_acw_ts = get_acw_time_series(cosine_ts, 150, 1)
@@ -410,17 +464,26 @@ low_acw_results = process_group(low_acw_subjects, A1_tpn_df, acw_values, cosine_
 all_subjects_results = process_all_subjects(A1_tpn_df, acw_values, cosine_ts, iterations, m)
 
 # Inside the loop for CSV saving
-for group_name, (no_shuffle_te_values, shuffle_te_values, p_values) in [('L', low_acw_results), ('H', high_acw_results), ('All', all_subjects_results)]:
+for group_name, (true_te_forward,true_te_reverse,fals_te_forward,fals_te_reverse, p_values_acw_forward_mbb,p_values_acw_forward_phi,p_values_acw_forward_ran,p_values_acw_reverse_mbb,p_values_acw_reverse_phi,p_values_acw_reverse_ran,p_values_raw_forward_mbb,p_values_raw_forward_phi,p_values_raw_forward_ran,p_values_raw_reverse_mbb,p_values_raw_reverse_phi,p_values_raw_reverse_ran) in [('L', low_acw_results), ('H', high_acw_results), ('All', all_subjects_results)]:
     results = []
-    for tau in taus:
-        mean_te = np.mean(shuffle_te_values[tau])
-        sd_te = np.std(shuffle_te_values[tau])  # Calculate standard deviation here
-        results.append({
-            'Lag': tau,
-            'No Shuffle TE': no_shuffle_te_values[tau - 1],
-            'Mean Shuffle TE': mean_te,
-            'SD Shuffle TE': sd_te,  # Include the standard deviation in the results
-            'p-value': p_values[tau]
-        })
+    
+    results.append({
+        'te_acw_forward': true_te_forward,
+        'te_acw_reverse': true_te_reverse,
+        'te_raw_forward': fals_te_forward,
+        'te_raw_reverse': fals_te_reverse,
+        'p_af_mbb': p_values_acw_forward_mbb,
+        'p_ar_mbb': p_values_acw_reverse_mbb,
+        'p_af_phi': p_values_acw_forward_phi,
+        'p_ar_phi': p_values_acw_reverse_phi,
+        'p_af_ran': p_values_acw_forward_ran,
+        'p_ar_ran': p_values_acw_reverse_ran,
+        'p_rf_mbb': p_values_raw_forward_mbb,
+        'p_rr_mbb': p_values_raw_reverse_mbb,
+        'p_rf_phi': p_values_raw_forward_phi,
+        'p_rr_phi': p_values_raw_reverse_phi,
+        'p_rf_ran': p_values_raw_forward_ran,
+        'p_rr_ran': p_values_raw_reverse_ran
+    })
     results_df = pd.DataFrame(results)
-    results_df.to_csv(f'WDoldcode1026Aug12.csv', index=False)
+    results_df.to_csv(f'/Users/satrokommos/Desktop/Euclidean/TEWDnew/A1_WDoldcode1609Aug12_{group_name}.csv', index=False)
