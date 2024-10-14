@@ -44,17 +44,17 @@ fig, axs = plt.subplots(3, 1, figsize=(10, 8), sharex=True, sharey=True)
 
 # Plotting A1 BOLD signal
 axs[0].plot(time, mean_A1[:900], color='blue')
-axs[0].set_title('BOLD Signal A1-TASK')
+axs[0].set_title('BOLD Signal A1 (Movie run)')
 axs[0].set_ylabel('BOLD Signal')
 
 # Plotting TA2 BOLD signal
 axs[1].plot(time, mean_TA2[:900], color='green')
-axs[1].set_title('BOLD Signal TA2-TASK')
+axs[1].set_title('BOLD Signal TA2 (Movie run)')
 axs[1].set_ylabel('BOLD Signal')
 
 # Plotting PSL BOLD signal
 axs[2].plot(time, mean_PSL[:900], color='red')
-axs[2].set_title('BOLD Signal PSL-TASK')
+axs[2].set_title('BOLD Signal PSL (Movie run)')
 axs[2].set_ylabel('BOLD Signal')
 axs[2].set_xlabel('Time (seconds)')
 
@@ -78,11 +78,13 @@ plt.xlim(0, 900)
 
 # Save the first plot as 'Braintask.png'
 plt.tight_layout()
-braintask_save_path = 'Braintask.png'
+braintask_save_path = 'Braintaskraw.png'
 plt.savefig(braintask_save_path, bbox_inches='tight')
 
 # Display plot
 plt.show()
+
+
 from scipy.stats import pearsonr
 
 # Compute pairwise Pearson correlations
@@ -108,29 +110,34 @@ colors = ['orange', 'purple', 'black']
 # Create a thin and tall bar plot
 fig, ax = plt.subplots(figsize=(2, 8))  # Keep the height tall
 
-# Plot the Pearson correlation values
-ax.bar(range(len(correlations)), correlations, color=colors, width=0.5)
+# Plot the Pearson correlation values with thicker bars (expanded bar size)
+ax.bar(range(len(correlations)), correlations, color=colors, width=1.0)  # Width set to 1.0 for full coverage
 
-# Set y-axis limit and labels
+# Set y-axis limit and labels on the right side
 ax.set_ylim(0, 1)
 ax.set_title('Pearson Correlation', pad=10)
 
-# Adjust limits to minimize x-axis space
-ax.set_xlim(-1, 3)  # Limit x-axis to create a thinner appearance
+# Set ticks on the right side of the plot
+ax.yaxis.tick_right()
+
+# Adjust x-axis limits to fully remove gaps
+ax.set_xlim(-0.5, 2.5)  # Expanded limits for airtight bars
 ax.set_xticks(range(len(correlations)))
 ax.set_xticklabels(labels, rotation=90, fontsize=8)
 
-# Add horizontal grid
-ax.yaxis.grid(True, linestyle='--', alpha=0.7)
+# Remove any padding between the axes and the bars
+ax.margins(x=0)
 
-# Save the second plot as 'taskbraincorr.png'
-taskbraincorr_save_path = 'taskbraincorr.png'
-plt.tight_layout()
-plt.savefig(taskbraincorr_save_path, bbox_inches='tight')
+# Turn off any extra space around the plot
+ax.autoscale(enable=True, axis='x', tight=True)
 
-# Display bar plot
+# Add horizontal grid and set its transparency
+ax.yaxis.grid(True, linestyle='--', alpha=0.5)
+
+# Save and show the bar plot
+save_path = 'taskrawbrain.png'
+plt.tight_layout(pad=0)  # Remove any padding around the plot
+plt.savefig(save_path, bbox_inches='tight')
 plt.show()
 
-# Print the saved file paths
-print(f"First plot saved at: {braintask_save_path}")
-print(f"Second plot saved at: {taskbraincorr_save_path}")
+print(f"Bar plot figure saved at: {save_path}")
