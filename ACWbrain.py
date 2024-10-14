@@ -83,9 +83,9 @@ fig, axs = plt.subplots(3, 1, figsize=(10, 8), sharex=True)
 
 # Plot Cosine dACW (smoothed)
 axs[0].plot(cosine_dacw_smoothed, color='blue', linewidth=1)
-axs[0].set_ylabel('ACW')
+axs[0].set_ylabel('Autocorrelation Window-0 (ACW-0)')
 axs[0].set_ylim(5, 6.2)
-axs[0].set_title('Dynamic ACW of A1 - TASK')
+axs[0].set_title('Dynamic ACW-0 of A1 (Movie run)')
 
 # Add rest intervals as grey boxes
 for rest in rest_intervals:
@@ -99,9 +99,9 @@ axs[0].set_xlim(0, len(cosine_dacw_smoothed))
 # Plot Word Depth dACW (smoothed)
 axs[1].plot(word_depth_dacw_smoothed, color='green', linewidth=1)
 
-axs[1].set_ylabel('ACW')
+axs[1].set_ylabel('Autocorrelation Window-0 (ACW-0)')
 axs[1].set_ylim(5, 6.2)
-axs[1].set_title('Dynamic ACW of TA2 - TASK')
+axs[1].set_title('Dynamic ACW-0 of TA2 (Movie run)')
 
 # Add rest intervals as grey boxes
 for rest in rest_intervals:
@@ -115,9 +115,9 @@ axs[1].set_xlim(0, len(word_depth_dacw_smoothed))
 # Now, for the third plot, use axs[2] instead of axs[1]
 axs[2].plot(PSL_tan_smoothed, color='red', linewidth=1)
 axs[2].set_xlabel('Windows (1 time step = 1 second)')
-axs[2].set_ylabel('ACW')
+axs[2].set_ylabel('Autocorrelation Window-0 (ACW-0)')
 axs[2].set_ylim(5, 6.2)
-axs[2].set_title('Dynamic ACW of PSL - TASK')
+axs[2].set_title('Dynamic ACW of PSL (Movie run)')
 
 # Add rest intervals as grey boxes
 for rest in rest_intervals:
@@ -135,13 +135,9 @@ plt.savefig(save_path_line_plots, bbox_inches='tight')
 plt.show()
 
 print(f"Line plot figure saved at: {save_path_line_plots}")
+import matplotlib.pyplot as plt
 
-# Second plot: Thin and tall bar plot
-fig, ax = plt.subplots(figsize=(2, 8))  # Keep the height tall
-
-# Plot Pearson correlation bar
-
-# Pearson correlation values between the last columns of the datasets
+# Pearson correlation values and labels
 correlations = [0.854, 0.467, 0.353]
 labels = ['A1-TA2', 'PSL-TA2', 'A1-PSL']
 
@@ -151,24 +147,33 @@ colors = ['orange', 'purple', 'black']
 # Create a thin and tall bar plot
 fig, ax = plt.subplots(figsize=(2, 8))  # Keep the height tall
 
-# Plot the Pearson correlation values
-ax.bar(range(len(correlations)), correlations, color=colors, width=0.5)
+# Plot the Pearson correlation values with thicker bars (expanded bar size)
+ax.bar(range(len(correlations)), correlations, color=colors, width=1.0)  # Width set to 1.0 for full coverage
 
-# Set y-axis limit and labels
+# Set y-axis limit and labels on the right side
 ax.set_ylim(0, 1)
-ax.set_title('Pearson Correlations', pad=10)
+ax.set_title('Pearson Correlation', pad=10)
 
-# Adjust limits to minimize x-axis space
-ax.set_xlim(-1, 3)  # Limit x-axis to create a thinner appearance
+# Set ticks on the right side of the plot
+ax.yaxis.tick_right()
+
+# Adjust x-axis limits to fully remove gaps
+ax.set_xlim(-0.5, 2.5)  # Expanded limits for airtight bars
 ax.set_xticks(range(len(correlations)))
 ax.set_xticklabels(labels, rotation=90, fontsize=8)
 
-# Add horizontal grid
-ax.yaxis.grid(True, linestyle='--', alpha=0.7)
+# Remove any padding between the axes and the bars
+ax.margins(x=0)
+
+# Turn off any extra space around the plot
+ax.autoscale(enable=True, axis='x', tight=True)
+
+# Add horizontal grid and set its transparency
+ax.yaxis.grid(True, linestyle='--', alpha=0.5)
 
 # Save and show the bar plot
 save_path = 'braincorr.png'
-plt.tight_layout()
+plt.tight_layout(pad=0)  # Remove any padding around the plot
 plt.savefig(save_path, bbox_inches='tight')
 plt.show()
 
