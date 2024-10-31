@@ -65,8 +65,8 @@ PSL_timeseries = PSL_data['PSL_tan'].values
 #word_depth_dacw = get_acw_time_series(word_depth_timeseries)
 #
 # Apply smoothing (with different parameters for cosine and word depth)
-cosine_dacw_smoothed = smooth_timeseries(cosine_similarity_timeseries, sigma=0)
-word_depth_dacw_smoothed = smooth_timeseries(word_depth_timeseries, sigma=0)
+cosine_dacw_smoothed = smooth_timeseries(cosine_similarity_timeseries, sigma=0.8)
+word_depth_dacw_smoothed = smooth_timeseries(word_depth_timeseries, sigma=0.8)
 PSL_tan_smoothed = smooth_timeseries(PSL_timeseries, sigma=0.8)
 
 # Define the movie and rest intervals
@@ -83,9 +83,9 @@ fig, axs = plt.subplots(3, 1, figsize=(10, 8), sharex=True)
 
 # Plot Cosine dACW (smoothed)
 axs[0].plot(cosine_dacw_smoothed, color='blue', linewidth=1)
-axs[0].set_ylabel('Autocorrelation Window-0 (ACW-0)')
+#axs[0].set_ylabel('Autocorrelation Window-0 (ACW-0)')
 axs[0].set_ylim(5, 6.2)
-axs[0].set_title('Dynamic ACW-0 of A1 (Movie run)')
+axs[0].set_title('Dynamic ACW-0 of A1 (Movie run)', fontweight='bold')
 
 # Add rest intervals as grey boxes
 for rest in rest_intervals:
@@ -99,9 +99,9 @@ axs[0].set_xlim(0, len(cosine_dacw_smoothed))
 # Plot Word Depth dACW (smoothed)
 axs[1].plot(word_depth_dacw_smoothed, color='green', linewidth=1)
 
-axs[1].set_ylabel('Autocorrelation Window-0 (ACW-0)')
+#axs[1].set_ylabel('Autocorrelation Window-0 (ACW-0)')
 axs[1].set_ylim(5, 6.2)
-axs[1].set_title('Dynamic ACW-0 of TA2 (Movie run)')
+axs[1].set_title('Dynamic ACW-0 of TA2 (Movie run)', fontweight='bold')
 
 # Add rest intervals as grey boxes
 for rest in rest_intervals:
@@ -114,11 +114,13 @@ axs[1].set_xlim(0, len(word_depth_dacw_smoothed))
 
 # Now, for the third plot, use axs[2] instead of axs[1]
 axs[2].plot(PSL_tan_smoothed, color='red', linewidth=1)
-axs[2].set_xlabel('Windows (1 time step = 1 second)')
-axs[2].set_ylabel('Autocorrelation Window-0 (ACW-0)')
+axs[2].set_xlabel('Windows (1 time step = 1 second)', fontweight='bold')
+#axs[2].set_ylabel('Autocorrelation Window-0 (ACW-0)')
 axs[2].set_ylim(5, 6.2)
-axs[2].set_title('Dynamic ACW of PSL (Movie run)')
+axs[2].set_title('Dynamic ACW-0 of PSL (Movie run)',fontweight='bold')
+# Set a single y-axis label for the entire figure
 
+fig.supylabel('Autocorrelation Window-0 (ACW-0)', fontsize=12, fontweight='bold')
 # Add rest intervals as grey boxes
 for rest in rest_intervals:
     axs[2].axvspan(rest[0], rest[1], color='grey', alpha=0.5)
@@ -129,7 +131,7 @@ axs[2].grid(axis='y', linestyle='--', alpha=0.7)
 axs[2].set_xlim(0, len(PSL_tan_smoothed))
 
 # Save and show the line plots
-save_path_line_plots = os.path.join(save_directory, 'dbrain.png')
+save_path_line_plots = os.path.join(save_directory, 'dy_movie.png')
 plt.tight_layout()
 plt.savefig(save_path_line_plots, bbox_inches='tight')
 plt.show()
@@ -144,40 +146,41 @@ labels = ['A1-TA2', 'PSL-TA2', 'A1-PSL']
 # Define colors
 colors = ['orange', 'purple', 'black']
 
-# Create a thin and tall bar plot
-fig, ax = plt.subplots(figsize=(2, 8))  # Keep the height tall
+# Create a thinner and tall bar plot
+fig, ax = plt.subplots(figsize=(2, 8))  # Reduced width for thinner plot
 
-# Plot the Pearson correlation values with thicker bars (expanded bar size)
-ax.bar(range(len(correlations)), correlations, color=colors, width=1.0)  # Width set to 1.0 for full coverage
+# Plot the Pearson correlation values with full-width bars for no spacing
+ax.bar(range(len(correlations)), correlations, color=colors, width=1.0)  # Full-width bars
 
 # Set y-axis limit and labels on the right side
 ax.set_ylim(0, 1)
-ax.set_title('Pearson Correlation', pad=10)
+
+# Adjust title position by setting 'loc' to 'left' and fine-tuning pad
+ax.set_title('Pearson Correlation', pad=20, fontweight='bold', loc='left')  # Move title slightly to the right
 
 # Set ticks on the right side of the plot
 ax.yaxis.tick_right()
 
-# Adjust x-axis limits to fully remove gaps
-ax.set_xlim(-0.5, 2.5)  # Expanded limits for airtight bars
+# Adjust x-axis limits tightly around the bars to remove gaps
+ax.set_xlim(-0.5, len(correlations) - 0.5)  # Tighten x-axis limits based on number of bars
 ax.set_xticks(range(len(correlations)))
-ax.set_xticklabels(labels, rotation=90, fontsize=8)
+ax.set_xticklabels(labels, rotation=90, fontsize=8, fontweight='bold')
 
 # Remove any padding between the axes and the bars
 ax.margins(x=0)
 
-# Turn off any extra space around the plot
-ax.autoscale(enable=True, axis='x', tight=True)
+# Use tight layout to ensure no cutoff
+plt.tight_layout()
 
 # Add horizontal grid and set its transparency
 ax.yaxis.grid(True, linestyle='--', alpha=0.5)
 
 # Save and show the bar plot
-save_path = 'braincorr.png'
-plt.tight_layout(pad=0)  # Remove any padding around the plot
+save_path = 'dycor_movie.png'
 plt.savefig(save_path, bbox_inches='tight')
 plt.show()
 
-print(f"Bar plot figure saved at: {save_path}")
+
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -246,8 +249,8 @@ PSL_timeseries = PSL_data['PSL_rpn'].values
 #word_depth_dacw = get_acw_time_series(word_depth_timeseries)
 #
 # Apply smoothing (with different parameters for cosine and word depth)
-cosine_dacw_smoothed = smooth_timeseries(cosine_similarity_timeseries, sigma=0)
-word_depth_dacw_smoothed = smooth_timeseries(word_depth_timeseries, sigma=0)
+cosine_dacw_smoothed = smooth_timeseries(cosine_similarity_timeseries, sigma=0.8)
+word_depth_dacw_smoothed = smooth_timeseries(word_depth_timeseries, sigma=0.8)
 PSL_tan_smoothed = smooth_timeseries(PSL_timeseries, sigma=0.8)
 
 # Define the movie and rest intervals
@@ -264,9 +267,9 @@ fig, axs = plt.subplots(3, 1, figsize=(10, 8), sharex=True)
 
 # Plot Cosine dACW (smoothed)
 axs[0].plot(cosine_dacw_smoothed, color='blue', linewidth=1)
-axs[0].set_ylabel('Autocorrelation Window-0 (ACW-0)')
+#axs[0].set_ylabel('Autocorrelation Window-0 (ACW-0)')
 axs[0].set_ylim(5.2, 6.5)
-axs[0].set_title('Dynamic ACW-0 of A1 (Rest)')
+axs[0].set_title('Dynamic ACW-0 of A1 (Rest)', fontweight='bold')
 
 ## Add rest intervals as grey boxes
 #for rest in rest_intervals:
@@ -280,9 +283,9 @@ axs[0].set_xlim(0, len(cosine_dacw_smoothed))
 # Plot Word Depth dACW (smoothed)
 axs[1].plot(word_depth_dacw_smoothed, color='green', linewidth=1)
 
-axs[1].set_ylabel('Autocorrelation Window-0 (ACW-0)')
+#axs[1].set_ylabel('Autocorrelation Window-0 (ACW-0)', fontweight='bold')
 axs[1].set_ylim(5.4, 6.5)
-axs[1].set_title('Dynamic ACW-0 of TA2 (Rest)')
+axs[1].set_title('Dynamic ACW-0 of TA2 (Rest)', fontweight='bold')
 
 ## Add rest intervals as grey boxes
 #for rest in rest_intervals:
@@ -295,10 +298,11 @@ axs[1].set_xlim(0, len(word_depth_dacw_smoothed))
 
 # Now, for the third plot, use axs[2] instead of axs[1]
 axs[2].plot(PSL_tan_smoothed, color='red', linewidth=1)
-axs[2].set_xlabel('Windows (1 time step = 1 second)')
-axs[2].set_ylabel('Autocorrelation Window-0 (ACW-0)')
+axs[2].set_xlabel('Windows (1 time step = 1 second)', fontweight='bold')
+#axs[2].set_ylabel('Autocorrelation Window-0 (ACW-0)', fontweight='bold')
 axs[2].set_ylim(5.2, 6.5)
-axs[2].set_title('Dynamic ACW of PSL (Rest)')
+axs[2].set_title('Dynamic ACW of PSL (Rest)', fontweight='bold')
+fig.supylabel('Autocorrelation Window-0 (ACW-0)', fontsize=12, fontweight='bold')
 
 ## Add rest intervals as grey boxes
 #for rest in rest_intervals:
@@ -310,9 +314,9 @@ axs[2].grid(axis='y', linestyle='--', alpha=0.7)
 axs[2].set_xlim(0, len(PSL_tan_smoothed))
 
 # Save and show the line plots
-save_path_line_plots = os.path.join(save_directory, 'dbrain.png')
+save_path_line_plots = os.path.join(save_directory, 'dy_rest.png')
 plt.tight_layout()
-#plt.savefig(save_path_line_plots, bbox_inches='tight')
+plt.savefig(save_path_line_plots, bbox_inches='tight')
 plt.show()
 
 print(f"Line plot figure saved at: {save_path_line_plots}")
@@ -336,37 +340,38 @@ labels = ['A1-TA2', 'PSL-TA2', 'A1-PSL']
 # Define colors
 colors = ['orange', 'purple', 'black']
 
-# Create a thin and tall bar plot
-fig, ax = plt.subplots(figsize=(2, 8))  # Keep the height tall
+# Create a thinner and tall bar plot
+fig, ax = plt.subplots(figsize=(2, 8))  # Reduced width for thinner plot
 
-# Plot the Pearson correlation values with thicker bars (expanded bar size)
-ax.bar(range(len(correlations)), correlations, color=colors, width=1.0)  # Width set to 1.0 for full coverage
+# Plot the Pearson correlation values with full-width bars for no spacing
+ax.bar(range(len(correlations)), correlations, color=colors, width=1.0)  # Full-width bars
 
 # Set y-axis limit and labels on the right side
 ax.set_ylim(0, 1)
-ax.set_title('Pearson Correlation', pad=10)
+
+# Adjust title position by setting 'loc' to 'left' and fine-tuning pad
+ax.set_title('Pearson Correlation', pad=20, fontweight='bold', loc='left')  # Move title slightly to the right
 
 # Set ticks on the right side of the plot
 ax.yaxis.tick_right()
 
-# Adjust x-axis limits to fully remove gaps
-ax.set_xlim(-0.5, 2.5)  # Expanded limits for airtight bars
+# Adjust x-axis limits tightly around the bars to remove gaps
+ax.set_xlim(-0.5, len(correlations) - 0.5)  # Tighten x-axis limits based on number of bars
 ax.set_xticks(range(len(correlations)))
-ax.set_xticklabels(labels, rotation=90, fontsize=8)
+ax.set_xticklabels(labels, rotation=90, fontsize=8, fontweight='bold')
 
 # Remove any padding between the axes and the bars
 ax.margins(x=0)
 
-# Turn off any extra space around the plot
-ax.autoscale(enable=True, axis='x', tight=True)
+# Use tight layout to ensure no cutoff
+plt.tight_layout()
 
 # Add horizontal grid and set its transparency
 ax.yaxis.grid(True, linestyle='--', alpha=0.5)
 
 # Save and show the bar plot
-save_path = 'braincorr.png'
-plt.tight_layout(pad=0)  # Remove any padding around the plot
-#plt.savefig(save_path, bbox_inches='tight')
+save_path = 'dycorr_rest.png'
+plt.savefig(save_path, bbox_inches='tight')
 plt.show()
 
 print(f"Bar plot figure saved at: {save_path}")
