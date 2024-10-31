@@ -44,20 +44,20 @@ fig, axs = plt.subplots(3, 1, figsize=(10, 8), sharex=True, sharey=True)
 
 # Plotting A1 BOLD signal
 axs[0].plot(time, mean_A1[:900], color='blue')
-axs[0].set_title('BOLD Signal A1 (Movie run)')
-axs[0].set_ylabel('BOLD Signal')
+axs[0].set_title('BOLD Signal A1 (Movie run)',fontweight='bold')
+#axs[0].set_ylabel('BOLD Signal')
 
 # Plotting TA2 BOLD signal
 axs[1].plot(time, mean_TA2[:900], color='green')
-axs[1].set_title('BOLD Signal TA2 (Movie run)')
-axs[1].set_ylabel('BOLD Signal')
+axs[1].set_title('BOLD Signal TA2 (Movie run)',fontweight='bold')
+#axs[1].set_ylabel('BOLD Signal')
 
 # Plotting PSL BOLD signal
 axs[2].plot(time, mean_PSL[:900], color='red')
-axs[2].set_title('BOLD Signal PSL (Movie run)')
-axs[2].set_ylabel('BOLD Signal')
-axs[2].set_xlabel('Time (seconds)')
-
+axs[2].set_title('BOLD Signal PSL (Movie run)',fontweight='bold')
+#axs[2].set_ylabel('BOLD Signal')
+axs[2].set_xlabel('Time (seconds)',fontweight='bold')
+fig.supylabel('BOLD signal', fontsize=12, fontweight='bold')
 # Add grey boxes for rest intervals on all plots
 for ax in axs:
     for rest in rest_intervals:
@@ -78,8 +78,8 @@ plt.xlim(0, 900)
 
 # Save the first plot as 'Braintask.png'
 plt.tight_layout()
-braintask_save_path = 'Braintaskraw.png'
-plt.savefig(braintask_save_path, bbox_inches='tight')
+braintask_save_path = 'movie.png'
+#plt.savefig(braintask_save_path, bbox_inches='tight')
 
 # Display plot
 plt.show()
@@ -107,37 +107,38 @@ labels = ['A1-TA2', 'PSL-TA2', 'A1-PSL']
 # Define colors
 colors = ['orange', 'purple', 'black']
 
-# Create a thin and tall bar plot
-fig, ax = plt.subplots(figsize=(2, 8))  # Keep the height tall
+# Create a thinner and tall bar plot
+fig, ax = plt.subplots(figsize=(2, 8))  # Reduced width for thinner plot
 
-# Plot the Pearson correlation values with thicker bars (expanded bar size)
-ax.bar(range(len(correlations)), correlations, color=colors, width=1.0)  # Width set to 1.0 for full coverage
+# Plot the Pearson correlation values with full-width bars for no spacing
+ax.bar(range(len(correlations)), correlations, color=colors, width=1.0)  # Full-width bars
 
 # Set y-axis limit and labels on the right side
 ax.set_ylim(0, 1)
-ax.set_title('Pearson Correlation', pad=10)
+
+# Adjust title position by setting 'loc' to 'left' and fine-tuning pad
+ax.set_title('Pearson Correlation', pad=20, fontweight='bold', loc='left')  # Move title slightly to the right
 
 # Set ticks on the right side of the plot
 ax.yaxis.tick_right()
 
-# Adjust x-axis limits to fully remove gaps
-ax.set_xlim(-0.5, 2.5)  # Expanded limits for airtight bars
+# Adjust x-axis limits tightly around the bars to remove gaps
+ax.set_xlim(-0.5, len(correlations) - 0.5)  # Tighten x-axis limits based on number of bars
 ax.set_xticks(range(len(correlations)))
-ax.set_xticklabels(labels, rotation=90, fontsize=8)
+ax.set_xticklabels(labels, rotation=90, fontsize=8, fontweight='bold')
 
 # Remove any padding between the axes and the bars
 ax.margins(x=0)
 
-# Turn off any extra space around the plot
-ax.autoscale(enable=True, axis='x', tight=True)
+# Use tight layout to ensure no cutoff
+plt.tight_layout()
 
 # Add horizontal grid and set its transparency
 ax.yaxis.grid(True, linestyle='--', alpha=0.5)
 
 # Save and show the bar plot
-save_path = 'taskrawbrain.png'
-plt.tight_layout(pad=0)  # Remove any padding around the plot
-plt.savefig(save_path, bbox_inches='tight')
+save_path = 'cor_movie.png'
+#plt.savefig(save_path, bbox_inches='tight')
 plt.show()
 
 print(f"Bar plot figure saved at: {save_path}")
@@ -188,19 +189,20 @@ fig, axs = plt.subplots(3, 1, figsize=(10, 8), sharex=True, sharey=True)
 
 # Plotting A1 BOLD signal
 axs[0].plot(time, mean_A1[:900], color='blue')
-axs[0].set_title('BOLD Signal A1 (Rest)')
-axs[0].set_ylabel('BOLD Signal')
+axs[0].set_title('BOLD Signal A1 (Rest)',fontweight='bold')
+#axs[0].set_ylabel('BOLD Signal')
 
 # Plotting TA2 BOLD signal
 axs[1].plot(time, mean_TA2[:900], color='green')
-axs[1].set_title('BOLD Signal TA2 (Rest)')
-axs[1].set_ylabel('BOLD Signal')
+axs[1].set_title('BOLD Signal TA2 (Rest)',fontweight='bold')
+#axs[1].set_ylabel('BOLD Signal')
 
 # Plotting PSL BOLD signal
 axs[2].plot(time, mean_PSL[:900], color='red')
-axs[2].set_title('BOLD Signal PSL (Rest)')
-axs[2].set_ylabel('BOLD Signal')
+axs[2].set_title('BOLD Signal PSL (Rest)',fontweight='bold')
+#axs[2].set_ylabel('BOLD Signal')
 axs[2].set_xlabel('Time (seconds)')
+fig.supylabel('BOLD signal', fontsize=12, fontweight='bold')
 
 ## Add grey boxes for rest intervals on all plots
 #for ax in axs:
@@ -229,8 +231,8 @@ plt.xlim(0, 900)
 
 # Save the first plot as 'Braintask.png'
 plt.tight_layout()
-braintask_save_path = 'Brainrestraw.png'
-plt.savefig(braintask_save_path, bbox_inches='tight')
+braintask_save_path = 'rest.png'
+#plt.savefig(braintask_save_path, bbox_inches='tight')
 
 # Display plot
 plt.show()
@@ -258,37 +260,36 @@ labels = ['A1-TA2', 'PSL-TA2', 'A1-PSL']
 # Define colors
 colors = ['orange', 'purple', 'black']
 
-# Create a thin and tall bar plot
-fig, ax = plt.subplots(figsize=(2, 8))  # Keep the height tall
+# Create a thinner and tall bar plot
+fig, ax = plt.subplots(figsize=(2, 8))  # Reduced width for thinner plot
 
-# Plot the Pearson correlation values with thicker bars (expanded bar size)
-ax.bar(range(len(correlations)), correlations, color=colors, width=1.0)  # Width set to 1.0 for full coverage
+# Plot the Pearson correlation values with full-width bars for no spacing
+ax.bar(range(len(correlations)), correlations, color=colors, width=1.0)  # Full-width bars
 
 # Set y-axis limit and labels on the right side
 ax.set_ylim(0, 1)
-ax.set_title('Pearson Correlation', pad=10)
+
+# Adjust title position by setting 'loc' to 'left' and fine-tuning pad
+ax.set_title('Pearson Correlation', pad=20, fontweight='bold', loc='left')  # Move title slightly to the right
 
 # Set ticks on the right side of the plot
 ax.yaxis.tick_right()
 
-# Adjust x-axis limits to fully remove gaps
-ax.set_xlim(-0.5, 2.5)  # Expanded limits for airtight bars
+# Adjust x-axis limits tightly around the bars to remove gaps
+ax.set_xlim(-0.5, len(correlations) - 0.5)  # Tighten x-axis limits based on number of bars
 ax.set_xticks(range(len(correlations)))
-ax.set_xticklabels(labels, rotation=90, fontsize=8)
+ax.set_xticklabels(labels, rotation=90, fontsize=8, fontweight='bold')
 
 # Remove any padding between the axes and the bars
 ax.margins(x=0)
 
-# Turn off any extra space around the plot
-ax.autoscale(enable=True, axis='x', tight=True)
+# Use tight layout to ensure no cutoff
+plt.tight_layout()
 
 # Add horizontal grid and set its transparency
 ax.yaxis.grid(True, linestyle='--', alpha=0.5)
 
 # Save and show the bar plot
-save_path = 'restrawbraincorr.png'
-plt.tight_layout(pad=0)  # Remove any padding around the plot
-plt.savefig(save_path, bbox_inches='tight')
+save_path = 'cor_rest.png'
+#plt.savefig(save_path, bbox_inches='tight')
 plt.show()
-
-print(f"Bar plot figure saved at: {save_path}")
