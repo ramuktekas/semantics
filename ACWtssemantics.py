@@ -58,19 +58,19 @@ cosine_similarity_timeseries = cosine_data['Cosine_Similarity'].values[200:-200]
 word_depth_timeseries = worddepth_data['Word_depth'].values[200:-200]
 
 # Compute averages for cosine similarity timeseries
-cosine_similarity_timeseries= np.mean(
-    cosine_similarity_timeseries[:len(cosine_similarity_timeseries) // 10 * 10].reshape(-1, 10), axis=1
-)
-
-# Compute averages for word depth timeseries
-word_depth_timeseries= np.mean(
-    word_depth_timeseries[:len(word_depth_timeseries) // 10 * 10].reshape(-1, 10), axis=1
-)
+#cosine_similarity_timeseries= np.mean(
+#    cosine_similarity_timeseries[:len(cosine_similarity_timeseries) // 10 * 10].reshape(-1, 10), axis=1
+#)
+#
+## Compute averages for word depth timeseries
+#word_depth_timeseries= np.mean(
+#    word_depth_timeseries[:len(word_depth_timeseries) // 10 * 10].reshape(-1, 10), axis=1
+#)
 # Calculate dACW time series
-#cosine_dacw = get_acw_time_series(cosine_similarity_timeseries)
-#word_depth_dacw = get_acw_time_series(word_depth_timeseries)
-cosine_dacw = cosine_similarity_timeseries
-word_depth_dacw = word_depth_timeseries
+cosine_dacw = get_acw_time_series(cosine_similarity_timeseries)
+word_depth_dacw = get_acw_time_series(word_depth_timeseries)
+#cosine_dacw = cosine_similarity_timeseries
+#word_depth_dacw = word_depth_timeseries
 
 # Apply smoothing (with different parameters for cosine and word depth)
 cosine_dacw_smoothed = smooth_timeseries(cosine_dacw, sigma=1.5)
@@ -128,14 +128,14 @@ if not os.path.exists(save_directory):
 fig, axs = plt.subplots(2, 1, figsize=(10, 8), sharex=True)
 
 # Plot Cosine dACW (smoothed)
-#axs[0].plot(cosine_dacw_smoothed/10, color='blue', linewidth=1)
-axs[0].plot(cosine_dacw_smoothed, color='blue', linewidth=1)
+axs[0].plot(cosine_dacw_smoothed/10, color='blue', linewidth=1)
+#axs[0].plot(cosine_dacw_smoothed, color='blue', linewidth=1)
 #axs[0].set_xlabel('Windows (1 time step = 1 second)', fontweight = 'bold')
 
-axs[0].set_ylabel('Cosine Similarity', fontweight = 'bold')
+#axs[0].set_ylabel('Cosine Similarity', fontweight = 'bold')
 #axs[0].set_ylim(0, 50)
-axs[0].set_title('Sentence Similarity', fontweight = 'bold')
-
+axs[0].set_title('Dyanmic ACW-0 of Sentence Similarity', fontweight = 'bold')
+axs[0].grid(axis='y', linestyle='--', alpha=0.7)
 # Add rest intervals as grey boxes
 for rest in rest_intervals:
     axs[0].axvspan(rest[0], rest[1], color='grey', alpha=0.5)
@@ -148,13 +148,13 @@ axs[0].set_xlim(0, len(cosine_dacw_smoothed))
 #axs[0].xaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f'{int(x / 10)}'))
 
 # Plot Word Depth dACW (smoothed)
-axs[1].plot(word_depth_dacw_smoothed, color='green', linewidth=1)
-#axs[1].plot(word_depth_dacw_smoothed/10, color='green', linewidth=1)
-axs[1].set_xlabel('Time bins (seconds)', fontweight = 'bold')
-axs[1].set_ylabel('Word Depth', fontweight = 'bold')
+#axs[1].plot(word_depth_dacw_smoothed, color='green', linewidth=1)
+axs[1].plot(word_depth_dacw_smoothed/10, color='green', linewidth=1)
+axs[1].set_xlabel('Windows (step size= 1 second)', fontweight = 'bold')
+#axs[1].set_ylabel('Dynamic ACW-0 of Word Depths', fontweight = 'bold')
 #axs[1].set_ylim(0, 50)
-axs[1].set_title('Word Depths', fontweight = 'bold')
-
+axs[1].set_title('Dynamic ACW-0 of Word Depths', fontweight = 'bold')
+axs[1].grid(axis='y', linestyle='--', alpha=0.7)
 # Add rest intervals as grey boxes
 for rest in rest_intervals:
     axs[1].axvspan(rest[0], rest[1], color='grey', alpha=0.5)
@@ -164,13 +164,14 @@ for silence in silent_intervals:
 # Set y-axis and origin at the origin
 axs[1].spines['left'].set_position(('data', 0))
 axs[1].set_xlim(0, len(word_depth_dacw_smoothed))
-#axs[1].xaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f'{int(x / 10)}'))
-#fig.text(0.04, 0.5, 'Autocorrelation Window-0 (ACW-0)', va='center', rotation='vertical', fontweight='bold')
+axs[1].xaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f'{int(x / 10)}'))
+fig.text(0.04, 0.5, 'Autocorrelation Window-0 (ACW-0)', va='center', rotation='vertical', fontweight='bold')
 
 
 # Save and show the plot
-save_path = os.path.join(save_directory, 'RAW_semantics.png')
+save_path = os.path.join(save_directory, 'DY_ACW0_semantics.png')
 plt.savefig(save_path, bbox_inches='tight')
 plt.show()
 
 print(f"Figure saved at: {save_path}")
+
