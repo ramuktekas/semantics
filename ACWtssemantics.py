@@ -57,7 +57,7 @@ worddepth_data = pd.read_csv(worddepth_file_path)
 cosine_similarity_timeseries = cosine_data['Cosine_Similarity'].values[200:-200]
 word_depth_timeseries = worddepth_data['Word_depth'].values[200:-200]
 
-# Compute averages for cosine similarity timeseries
+ #Compute averages for cosine similarity timeseries
 #cosine_similarity_timeseries= np.mean(
 #    cosine_similarity_timeseries[:len(cosine_similarity_timeseries) // 10 * 10].reshape(-1, 10), axis=1
 #)
@@ -79,10 +79,10 @@ word_depth_dacw_smoothed = smooth_timeseries(word_depth_dacw, sigma=1.5)
 # Define the movie and rest intervals
 movie_intervals = [(20, 246), (267, 525), (545, 794), (815, 897)]
 #rest_intervals = [(0, 200), (2460, 2670), (5250, 5450), (7940, 8150), (8970, 9000)]
-rest_intervals = [(246, 267), (525, 545), (794, 815)]
+rest_intervals = [(246, 267), (525, 545), (794, 815),(897, 918)]
 
 # Multiply each number in the tuples by 10
-#rest_intervals = [(start * 10, end * 10) for start, end in rest_intervals]
+rest_intervals = [(start -20, end-20 ) for start, end in rest_intervals]
 silent_intervals = [
     (24.6, 25.0), (25.9, 26.0), (27.9, 28.1), (31.7, 31.8), (34.5, 34.7), (40.5, 41.2),
     (43.7, 43.8), (45.9, 46.0), (49.1, 49.5), (49.9, 50.5), (52.2, 52.3), (52.7, 53.5),
@@ -117,7 +117,7 @@ silent_intervals = [
     (862.0, 877.2), (879.5, 879.7), (881.6, 897.0)
 ]
 
-#silent_intervals = [(start * 10, end * 10) for start, end in silent_intervals]
+silent_intervals = [(start -20, end-20) for start, end in silent_intervals]
 
 # Directory to save the figure
 save_directory = '/Volumes/WD/desktop/Figures8Oct'
@@ -134,7 +134,7 @@ axs[0].plot(cosine_dacw_smoothed/10, color='blue', linewidth=1)
 
 #axs[0].set_ylabel('Cosine Similarity', fontweight = 'bold')
 #axs[0].set_ylim(0, 50)
-axs[0].set_title('Dyanmic ACW-0 of Sentence Similarity', fontweight = 'bold')
+axs[0].set_title('Dynamic ACW-0 of Sentence Similarity', fontweight = 'bold')
 axs[0].grid(axis='y', linestyle='--', alpha=0.7)
 # Add rest intervals as grey boxes
 for rest in rest_intervals:
@@ -151,7 +151,7 @@ axs[0].set_xlim(0, len(cosine_dacw_smoothed))
 #axs[1].plot(word_depth_dacw_smoothed, color='green', linewidth=1)
 axs[1].plot(word_depth_dacw_smoothed/10, color='green', linewidth=1)
 axs[1].set_xlabel('Windows (1 time step = 1 second)', fontweight = 'bold')
-#axs[1].set_ylabel('Dynamic ACW-0 of Word Depths', fontweight = 'bold')
+#axs[1].set_ylabel('Word Depth', fontweight = 'bold')
 #axs[1].set_ylim(0, 50)
 axs[1].set_title('Dynamic ACW-0 of Word Depths', fontweight = 'bold')
 axs[1].grid(axis='y', linestyle='--', alpha=0.7)
@@ -169,7 +169,7 @@ fig.text(0.04, 0.5, 'Autocorrelation Window-0 (seconds)', va='center', rotation=
 
 
 # Save and show the plot
-save_path = os.path.join(save_directory, 'DY_ACW0_semantics.png')
+save_path = os.path.join(save_directory, 'DY_ACW_semantics.png')
 plt.savefig(save_path, bbox_inches='tight')
 plt.show()
 
