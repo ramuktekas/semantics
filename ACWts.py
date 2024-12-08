@@ -10,7 +10,7 @@ def load_data(file_path):
     data = pd.read_csv(file_path, header=None)
     subject_ids = data.iloc[0, :]  # 0th row contains subject IDs
     time_series_data = data.iloc[1:, :].astype(float)  # Remaining rows are time series data
-    time_series_data = time_series_data.T  # Transpose so each column is a subject's time series
+    time_series_data = time_series_data.iloc[20:-20, :].T  # Remove 20 samples from the beginning and end, then transpose
     return subject_ids, time_series_data
 
 # Functions for processing
