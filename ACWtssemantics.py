@@ -150,7 +150,7 @@ axs[0].set_xlim(0, len(cosine_dacw_smoothed))
 # Plot Word Depth dACW (smoothed)
 #axs[1].plot(word_depth_dacw_smoothed, color='green', linewidth=1)
 axs[1].plot(word_depth_dacw_smoothed/10, color='green', linewidth=1)
-axs[1].set_xlabel('Windows (step size= 1 second)', fontweight = 'bold')
+axs[1].set_xlabel('Windows (1 time step = 1 second)', fontweight = 'bold')
 #axs[1].set_ylabel('Dynamic ACW-0 of Word Depths', fontweight = 'bold')
 #axs[1].set_ylim(0, 50)
 axs[1].set_title('Dynamic ACW-0 of Word Depths', fontweight = 'bold')
@@ -164,8 +164,8 @@ for silence in silent_intervals:
 # Set y-axis and origin at the origin
 axs[1].spines['left'].set_position(('data', 0))
 axs[1].set_xlim(0, len(word_depth_dacw_smoothed))
-axs[1].xaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f'{int(x / 10)}'))
-fig.text(0.04, 0.5, 'Autocorrelation Window-0 (ACW-0)', va='center', rotation='vertical', fontweight='bold')
+#axs[1].xaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f'{int(x / 10)}'))
+fig.text(0.04, 0.5, 'Autocorrelation Window-0 (seconds)', va='center', rotation='vertical', fontweight='bold')
 
 
 # Save and show the plot
