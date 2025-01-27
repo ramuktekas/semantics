@@ -18,76 +18,79 @@ lowcut = 0.05
 highcut = 0.4999
 fs = 1  # Sampling frequency
 
-# Preprocess each region's time series for Task (TPN) and Rest (RPN)
-def process_subject_time_series(data, lowcut, highcut, fs):
-    subjects_ts = []
+# Preprocess and compute PSD for each subject
+def compute_subject_psds(data, lowcut, highcut, fs):
+    frequencies_list = []
+    psd_list = []
     for subject_id in data.columns:
         ts = data[subject_id].values[20:-20]  # Remove 20 values from the front and end
         ts_detrended = detrend(ts)
         ts_filtered = bandpass_filter(ts_detrended, lowcut, highcut, fs)
-        subjects_ts.append(ts)
-    return np.mean(subjects_ts, axis=0)
-
-# Function to compute PSD
-def compute_psd(timeseries, fs):
-    frequencies, psd = welch(timeseries, fs=fs, scaling='density')
-    smoothed_psd = gaussian_filter1d(psd, sigma=1.5)
-    return frequencies, smoothed_psd
+        frequencies, psd = welch(ts_filtered, fs=fs, scaling='density')
+        frequencies_list.append(frequencies)
+        psd_list.append(psd)
+    
+    avg_psd = np.mean(psd_list, axis=0)  # Average PSDs across subjects
+    return frequencies_list[0], avg_psd
 
 # Load data
-a1_tpn = pd.read_csv('A1_tpn_182subs.csv')
-ta2_tpn = pd.read_csv('TA2_tpn_182subs.csv')
-psl_tpn = pd.read_csv('PSL_tpn_182subs.csv')
-a1_rpn = pd.read_csv('A1_rpn_177subs.csv')
-ta2_rpn = pd.read_csv('TA2_rpn_177subs.csv')
-psl_rpn = pd.read_csv('PSL_rpn_177subs.csv')
+a1_tpn = pd.read_csv('A1_tpn_182subs.csv', index_col=0)
+ta2_tpn = pd.read_csv('TA2_tpn_182subs.csv', index_col=0)
+psl_tpn = pd.read_csv('PSL_tpn_182subs.csv', index_col=0)
 
-# Process Task and Rest time series
-a1_tpn_avg = process_subject_time_series(a1_tpn, lowcut, highcut, fs)
-ta2_tpn_avg = process_subject_time_series(ta2_tpn, lowcut, highcut, fs)
-psl_tpn_avg = process_subject_time_series(psl_tpn, lowcut, highcut, fs)
+a1_rpn = pd.read_csv('A1_rpn_177subs.csv', index_col=0)
+ta2_rpn = pd.read_csv('TA2_rpn_177subs.csv', index_col=0)
+psl_rpn = pd.read_csv('PSL_rpn_177subs.csv', index_col=0)
 
-a1_rpn_avg = process_subject_time_series(a1_rpn, lowcut, highcut, fs)
-ta2_rpn_avg = process_subject_time_series(ta2_rpn, lowcut, highcut, fs)
-psl_rpn_avg = process_subject_time_series(psl_rpn, lowcut, highcut, fs)
+# Find common subjects between Task and Rest datasets
+common_subjects = list(set(a1_tpn.columns) & set(a1_rpn.columns))
 
-# Compute PSD for Task (TPN) and Rest (RPN)
-a1_tpn_freqs, a1_tpn_psd = compute_psd(a1_tpn_avg, fs)
-ta2_tpn_freqs, ta2_tpn_psd = compute_psd(ta2_tpn_avg, fs)
-psl_tpn_freqs, psl_tpn_psd = compute_psd(psl_tpn_avg, fs)
+# Filter datasets to include only common subjects
+a1_tpn = a1_tpn[common_subjects]
+ta2_tpn = ta2_tpn[common_subjects]
+psl_tpn = psl_tpn[common_subjects]
 
-a1_rpn_freqs, a1_rpn_psd = compute_psd(a1_rpn_avg, fs)
-ta2_rpn_freqs, ta2_rpn_psd = compute_psd(ta2_rpn_avg, fs)
-psl_rpn_freqs, psl_rpn_psd = compute_psd(psl_rpn_avg, fs)
+a1_rpn = a1_rpn[common_subjects]
+ta2_rpn = ta2_rpn[common_subjects]
+psl_rpn = psl_rpn[common_subjects]
+
+# Compute PSDs for Task and Rest
+a1_tpn_freqs, a1_tpn_psd = compute_subject_psds(a1_tpn, lowcut, highcut, fs)
+ta2_tpn_freqs, ta2_tpn_psd = compute_subject_psds(ta2_tpn, lowcut, highcut, fs)
+psl_tpn_freqs, psl_tpn_psd = compute_subject_psds(psl_tpn, lowcut, highcut, fs)
+
+a1_rpn_freqs, a1_rpn_psd = compute_subject_psds(a1_rpn, lowcut, highcut, fs)
+ta2_rpn_freqs, ta2_rpn_psd = compute_subject_psds(ta2_rpn, lowcut, highcut, fs)
+psl_rpn_freqs, psl_rpn_psd = compute_subject_psds(psl_rpn, lowcut, highcut, fs)
 
 # Plot Task vs. Rest PSD
 plt.figure(figsize=(14, 6))
 
 # Task PSD plot
-plt.subplot(1, 2, 1)
-plt.loglog(a1_tpn_freqs, a1_tpn_psd, label='A1', color='blue')
-plt.loglog(ta2_tpn_freqs, ta2_tpn_psd, label='TA2', color='green')
-plt.loglog(psl_tpn_freqs, psl_tpn_psd, label='PSL', color='red')
-plt.ylim(1, 100000)
-plt.title('PSD of BOLD Signals - Movie Run', fontsize=14, fontweight='bold', color='black')
-plt.xlabel('Frequency (Hz)', fontsize=12, fontweight='bold')
-plt.grid(True, axis='x', linestyle='--', alpha=0.5)
-#plt.legend()
-
-# Rest PSD plot
 plt.subplot(1, 2, 2)
-plt.loglog(a1_rpn_freqs, a1_rpn_psd, label='A1', color='blue')
-plt.loglog(ta2_rpn_freqs, ta2_rpn_psd, label='TA2', color='green')
-plt.loglog(psl_rpn_freqs, psl_rpn_psd, label='PSL', color='red')
-plt.ylim(1, 100000)
-plt.title('PSD of BOLD Signals - Rest', fontsize=14, fontweight='bold', color='black')
+plt.plot(a1_tpn_freqs, a1_tpn_psd, label='A1', color='blue')
+plt.plot(ta2_tpn_freqs, ta2_tpn_psd, label='TA2', color='green')
+plt.plot(psl_tpn_freqs, psl_tpn_psd, label='PSL', color='red')
+plt.title('PSD of BOLD time-series - Movie Run', fontsize=14, fontweight='bold', color='black')
 plt.xlabel('Frequency (Hz)', fontsize=12, fontweight='bold')
+plt.ylabel('Power Spectral Density', fontsize=12, fontweight='bold')
+plt.ylim(0, 42000)
 plt.grid(True, axis='x', linestyle='--', alpha=0.5)
+plt.xlim(0.05, 0.5)  # Set x-axis limits
 plt.legend()
 
-# Common y-axis label
-fig = plt.gcf()
-fig.text(0.04, 0.5, 'PSD', fontsize=14, fontweight='bold', va='center', rotation='vertical')
+# Rest PSD plot
+plt.subplot(1, 2, 1)
+plt.plot(a1_rpn_freqs, a1_rpn_psd, label='A1', color='blue')
+plt.plot(ta2_rpn_freqs, ta2_rpn_psd, label='TA2', color='green')
+plt.plot(psl_rpn_freqs, psl_rpn_psd, label='PSL', color='red')
+plt.title('PSD of BOLD time-series - Rest', fontsize=14, fontweight='bold', color='black')
+plt.ylabel('Power Spectral Density', fontsize=12, fontweight='bold')
+plt.xlabel('Frequency (Hz)', fontsize=12, fontweight='bold')
+plt.grid(True, axis='x', linestyle='--', alpha=0.5)
+plt.xlim(0.05, 0.5)  # Set x-axis limits
+plt.ylim(0, 42000)
+plt.legend()
 
 # Save the plot as a PNG file
 plt.tight_layout(rect=[0.05, 0, 1, 1])  # Adjust layout to make room for the y-axis label
